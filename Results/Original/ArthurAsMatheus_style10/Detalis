@@ -1,0 +1,2 @@
+python3 doodle.py --style samples/matheus.jpg --content samples/arthur.jpg                   --output ArthurAsMatheus_style10.png --device=gpu0 --phases=4 --iterations=40 --style-weight 10
+
