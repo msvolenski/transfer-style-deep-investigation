@@ -25,10 +25,12 @@ parser = argparse.ArgumentParser(description='Generate a new image by applying s
 add_arg = parser.add_argument
 
 add_arg('--content',        default=None, type=str,         help='Content image path as optimization target.')
-add_arg('--content-weight', default=10.0, type=float,       help='Weight of content relative to style.')
+add_arg('--content-weight_one', default=10.0, type=float,       help='Weight of content relative to style.')
+add_arg('--content-weight_two', default=10.0, type=float,       help='Weight of content relative to style.')
 add_arg('--content-layers', default='4_2', type=str,        help='The layer with which to match content.')
 add_arg('--style',          default=None, type=str,         help='Style image path to extract patches.')
-add_arg('--style-weight',   default=25.0, type=float,       help='Weight of style relative to content.')
+add_arg('--style-weight_one',   default=25.0, type=float,       help='Weight of style relative to content.')
+add_arg('--style-weight_two',   default=25.0, type=float,       help='Weight of style relative to content.')
 add_arg('--style-layers',   default='3_1,4_1', type=str,    help='The layers to match style patches.')
 add_arg('--semantic-ext',   default='_sem.png', type=str,   help='File extension for the semantic maps.')
 add_arg('--semantic-weight', default=10.0, type=float,      help='Global weight of semantics vs. features.')
@@ -429,13 +431,14 @@ class NeuralGenerator(object):
     # Error/Loss Functions
     #------------------------------------------------------------------------------------------------------------------
 
+    ### First person loss function
     def content_loss(self):
         """Return a list of Theano expressions for the error function, measuring how different the current image is
         from the reference content that was loaded.
         """
 
         content_loss = []
-        if args.content_weight != 0.0:
+        if args.content_weight_one != 0.0:
             # First extract all the features we need from the model, these results after convolution.
             extractor = theano.function([self.model.tensor_img], self.model.get_outputs('conv', self.content_layers))
             result = extractor(self.content_img)
@@ -444,11 +447,11 @@ class NeuralGenerator(object):
             for l, ref in zip(self.content_layers, result):
                 layer = self.model.tensor_outputs['conv'+l]
                 loss = T.mean((layer - ref) ** 2.0)
-                content_loss.append(('content', l, args.content_weight * loss))
+                content_loss.append(('content', l, args.content_weight_one * loss))
                 print('  - Content layer conv{}: {} features in {:,}kb.'.format(l, ref.shape[1], ref.size//1000))
 
         style_loss = []
-        if args.style_weight != 0.0:
+        if args.style_weight_one != 0.0:
             # Extract the patches from the current image, as well as their magnitude.
             result = self.do_extract_patches(zip(self.style_layers, self.model.get_outputs('conv', self.style_layers)))
 
@@ -457,17 +460,18 @@ class NeuralGenerator(object):
                 # Compute the mean squared error between the current patch and the best matching style patch.
                 # Ignore the last channels (from semantic map) so errors returned are indicative of image only.
                 loss = T.mean((patches - matches[:,:self.model.channels[l]]) ** 2.0)
-                style_loss.append(('style', l, args.style_weight * loss))
+                style_loss.append(('style', l, args.style_weight_one * loss))
 
         return content_loss + style_loss
 
+    ### Second person loss function
     def style_loss(self):
         """Returns a list of loss components as Theano expressions. Finds the best style patch for each patch in the
         current image using normalized cross-correlation, then computes the mean squared error for all patches.
         """
 
         content_loss = []
-        if args.content_weight != 0.0:
+        if args.content_weight_two != 0.0:
             # First extract all the features we need from the model, these results after convolution.
             extractor = theano.function([self.model.tensor_img], self.model.get_outputs('conv', self.content_layers))
             result = extractor(self.content_img)
@@ -476,11 +480,11 @@ class NeuralGenerator(object):
             for l, ref in zip(self.content_layers, result):
                 layer = self.model.tensor_outputs['conv'+l]
                 loss = T.mean((layer - ref) ** 2.0)
-                content_loss.append(('content', l, args.content_weight * loss))
+                content_loss.append(('content', l, args.content_weight_two * loss))
                 print('  - Content layer conv{}: {} features in {:,}kb.'.format(l, ref.shape[1], ref.size//1000))
 
         style_loss = []
-        if args.style_weight != 0.0:
+        if args.style_weight_two != 0.0:
             # Extract the patches from the current image, as well as their magnitude.
             result = self.do_extract_patches(zip(self.style_layers, self.model.get_outputs('conv', self.style_layers)))
 
@@ -489,7 +493,7 @@ class NeuralGenerator(object):
                 # Compute the mean squared error between the current patch and the best matching style patch.
                 # Ignore the last channels (from semantic map) so errors returned are indicative of image only.
                 loss = T.mean((patches - matches[:,:self.model.channels[l]]) ** 2.0)
-                style_loss.append(('style', l, args.style_weight * loss))
+                style_loss.append(('style', l, args.style_weight_two * loss))
 
         return content_loss + style_loss
 
