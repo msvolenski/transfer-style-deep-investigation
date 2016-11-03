@@ -196,6 +196,7 @@ class Model(object):
             print(type(data))
         elif args.network == 'vgg16':
             vgg16_file = os.path.join(os.path.dirname(__file__), 'vgg16_weights.h5')
+            data = h5py.File(vgg16_file, 'rb')
             ### TODO: Complete weights loading
             # data = pickle.load(bz2.open(vgg16_file, 'rb'))
 
