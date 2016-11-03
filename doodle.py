@@ -63,7 +63,7 @@ class ansi:
     CYAN = '\033[0;36m'
     CYAN_B = '\033[1;36m'
     ENDC = '\033[0m'
-    
+
 def error(message, *lines):
     string = "\n{}ERROR: " + message + "{}\n" + "\n".join(lines) + "{}\n"
     print(string.format(ansi.RED_B, ansi.RED, ansi.ENDC))
@@ -150,7 +150,7 @@ class Model(object):
             if i == 0:
                 net['map%i'%(j+1)] = PoolLayer(net['map'], 2**j, mode='average_exc_pad')
             self.channels[suffix] = net['conv'+suffix].num_filters
-            
+
             if args.semantic_weight > 0.0:
                 net['sem'+suffix] = ConcatLayer([net['conv'+suffix], net['map%i'%(j+1)]])
             else:
@@ -351,7 +351,7 @@ class NeuralGenerator(object):
         extractor = self.compile([self.model.tensor_img, self.model.tensor_map], self.do_extract_patches(layer_outputs))
         result = extractor(self.style_img, self.style_map)
 
-        # Store all the style patches layer by layer, resized to match slice size and cast to 16-bit for size. 
+        # Store all the style patches layer by layer, resized to match slice size and cast to 16-bit for size.
         self.style_data = {}
         for layer, *data in zip(self.style_layers, result[0::3], result[1::3], result[2::3]):
             patches = data[0]
@@ -366,14 +366,14 @@ class NeuralGenerator(object):
         Here we compile a function to run on the GPU that returns all components separately.
         """
 
-        # Feed-forward calculation only, returns the result of the convolution post-activation 
+        # Feed-forward calculation only, returns the result of the convolution post-activation
         self.compute_features = self.compile([self.model.tensor_img, self.model.tensor_map],
                                              self.model.get_outputs('sem', self.style_layers))
 
         # Patch matching calculation that uses only pre-calculated features and a slice of the patches.
-        
+
         self.matcher_tensors = {l: lasagne.utils.shared_empty(dim=4) for l in self.style_layers}
-        self.matcher_history = {l: T.vector() for l in self.style_layers} 
+        self.matcher_history = {l: T.vector() for l in self.style_layers}
         self.matcher_inputs = {self.model.network['dup'+l]: self.matcher_tensors[l] for l in self.style_layers}
         nn_layers = [self.model.network['nn'+l] for l in self.style_layers]
         self.matcher_outputs = dict(zip(self.style_layers, lasagne.layers.get_output(nn_layers, self.matcher_inputs)))
@@ -435,39 +435,63 @@ class NeuralGenerator(object):
         """
 
         content_loss = []
-        if args.content_weight == 0.0:
-            return content_loss
+        if args.content_weight != 0.0:
+            # First extract all the features we need from the model, these results after convolution.
+            extractor = theano.function([self.model.tensor_img], self.model.get_outputs('conv', self.content_layers))
+            result = extractor(self.content_img)
 
-        # First extract all the features we need from the model, these results after convolution.
-        extractor = theano.function([self.model.tensor_img], self.model.get_outputs('conv', self.content_layers))
-        result = extractor(self.content_img)
+            # Build a list of loss components that compute the mean squared error by comparing current result to desired.
+            for l, ref in zip(self.content_layers, result):
+                layer = self.model.tensor_outputs['conv'+l]
+                loss = T.mean((layer - ref) ** 2.0)
+                content_loss.append(('content', l, args.content_weight * loss))
+                print('  - Content layer conv{}: {} features in {:,}kb.'.format(l, ref.shape[1], ref.size//1000))
 
-        # Build a list of loss components that compute the mean squared error by comparing current result to desired.
-        for l, ref in zip(self.content_layers, result):
-            layer = self.model.tensor_outputs['conv'+l]
-            loss = T.mean((layer - ref) ** 2.0)
-            content_loss.append(('content', l, args.content_weight * loss))
-            print('  - Content layer conv{}: {} features in {:,}kb.'.format(l, ref.shape[1], ref.size//1000))
-        return content_loss
+        style_loss = []
+        if args.style_weight != 0.0:
+            # Extract the patches from the current image, as well as their magnitude.
+            result = self.do_extract_patches(zip(self.style_layers, self.model.get_outputs('conv', self.style_layers)))
+
+            # Multiple style layers are optimized separately, usually conv3_1 and conv4_1 — semantic data not used here.
+            for l, matches, patches in zip(self.style_layers, self.tensor_matches, result[0::3]):
+                # Compute the mean squared error between the current patch and the best matching style patch.
+                # Ignore the last channels (from semantic map) so errors returned are indicative of image only.
+                loss = T.mean((patches - matches[:,:self.model.channels[l]]) ** 2.0)
+                style_loss.append(('style', l, args.style_weight * loss))
+
+        return content_loss + style_loss
 
     def style_loss(self):
         """Returns a list of loss components as Theano expressions. Finds the best style patch for each patch in the
         current image using normalized cross-correlation, then computes the mean squared error for all patches.
         """
+
+        content_loss = []
+        if args.content_weight != 0.0:
+            # First extract all the features we need from the model, these results after convolution.
+            extractor = theano.function([self.model.tensor_img], self.model.get_outputs('conv', self.content_layers))
+            result = extractor(self.content_img)
+
+            # Build a list of loss components that compute the mean squared error by comparing current result to desired.
+            for l, ref in zip(self.content_layers, result):
+                layer = self.model.tensor_outputs['conv'+l]
+                loss = T.mean((layer - ref) ** 2.0)
+                content_loss.append(('content', l, args.content_weight * loss))
+                print('  - Content layer conv{}: {} features in {:,}kb.'.format(l, ref.shape[1], ref.size//1000))
+
         style_loss = []
-        if args.style_weight == 0.0:
-            return style_loss
+        if args.style_weight != 0.0:
+            # Extract the patches from the current image, as well as their magnitude.
+            result = self.do_extract_patches(zip(self.style_layers, self.model.get_outputs('conv', self.style_layers)))
 
-        # Extract the patches from the current image, as well as their magnitude.
-        result = self.do_extract_patches(zip(self.style_layers, self.model.get_outputs('conv', self.style_layers)))
+            # Multiple style layers are optimized separately, usually conv3_1 and conv4_1 — semantic data not used here.
+            for l, matches, patches in zip(self.style_layers, self.tensor_matches, result[0::3]):
+                # Compute the mean squared error between the current patch and the best matching style patch.
+                # Ignore the last channels (from semantic map) so errors returned are indicative of image only.
+                loss = T.mean((patches - matches[:,:self.model.channels[l]]) ** 2.0)
+                style_loss.append(('style', l, args.style_weight * loss))
 
-        # Multiple style layers are optimized separately, usually conv3_1 and conv4_1 — semantic data not used here.
-        for l, matches, patches in zip(self.style_layers, self.tensor_matches, result[0::3]):
-            # Compute the mean squared error between the current patch and the best matching style patch.
-            # Ignore the last channels (from semantic map) so errors returned are indicative of image only.
-            loss = T.mean((patches - matches[:,:self.model.channels[l]]) ** 2.0)
-            style_loss.append(('style', l, args.style_weight * loss))
-        return style_loss
+        return content_loss + style_loss
 
     def total_variation_loss(self):
         """Return a loss component as Theano expression for the smoothness prior on the result image.
@@ -483,7 +507,7 @@ class NeuralGenerator(object):
 
     def iterate_batches(self, *arrays, batch_size):
         """Break down the data in arrays batch by batch and return them as a generator.
-        """ 
+        """
         total_size = arrays[0].shape[0]
         indices = np.arange(total_size)
         for index in range(0, total_size, batch_size):
