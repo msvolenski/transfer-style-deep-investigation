@@ -24,6 +24,7 @@ parser = argparse.ArgumentParser(description='Generate a new image by applying s
                                  formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 add_arg = parser.add_argument
 
+add_arg('--network',        default='vgg19', type=str,      help='Network used to calculate the loss functions.')
 add_arg('--content',        default=None, type=str,         help='Content image path as optimization target.')
 add_arg('--content-weight', default=10.0, type=float,       help='Weight of content relative to style.')
 add_arg('--content-layers', default='4_2', type=str,        help='The layer with which to match content.')
@@ -63,7 +64,7 @@ class ansi:
     CYAN = '\033[0;36m'
     CYAN_B = '\033[1;36m'
     ENDC = '\033[0m'
-    
+
 def error(message, *lines):
     string = "\n{}ERROR: " + message + "{}\n" + "\n".join(lines) + "{}\n"
     print(string.format(ansi.RED_B, ansi.RED, ansi.ENDC))
@@ -118,28 +119,49 @@ class Model(object):
         net, self.channels = {}, {}
 
         # Primary network for the main image. These are convolution only, and stop at layer 4_2 (rest unused).
-        net['img']     = input or InputLayer((None, 3, None, None))
-        net['conv1_1'] = ConvLayer(net['img'],     64, 3, pad=1)
-        net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1)
-        net['pool1']   = PoolLayer(net['conv1_2'], 2, mode='average_exc_pad')
-        net['conv2_1'] = ConvLayer(net['pool1'],   128, 3, pad=1)
-        net['conv2_2'] = ConvLayer(net['conv2_1'], 128, 3, pad=1)
-        net['pool2']   = PoolLayer(net['conv2_2'], 2, mode='average_exc_pad')
-        net['conv3_1'] = ConvLayer(net['pool2'],   256, 3, pad=1)
-        net['conv3_2'] = ConvLayer(net['conv3_1'], 256, 3, pad=1)
-        net['conv3_3'] = ConvLayer(net['conv3_2'], 256, 3, pad=1)
-        net['conv3_4'] = ConvLayer(net['conv3_3'], 256, 3, pad=1)
-        net['pool3']   = PoolLayer(net['conv3_4'], 2, mode='average_exc_pad')
-        net['conv4_1'] = ConvLayer(net['pool3'],   512, 3, pad=1)
-        net['conv4_2'] = ConvLayer(net['conv4_1'], 512, 3, pad=1)
-        net['conv4_3'] = ConvLayer(net['conv4_2'], 512, 3, pad=1)
-        net['conv4_4'] = ConvLayer(net['conv4_3'], 512, 3, pad=1)
-        net['pool4']   = PoolLayer(net['conv4_4'], 2, mode='average_exc_pad')
-        net['conv5_1'] = ConvLayer(net['pool4'],   512, 3, pad=1)
-        net['conv5_2'] = ConvLayer(net['conv5_1'], 512, 3, pad=1)
-        net['conv5_3'] = ConvLayer(net['conv5_2'], 512, 3, pad=1)
-        net['conv5_4'] = ConvLayer(net['conv5_3'], 512, 3, pad=1)
-        net['main']    = net['conv5_4']
+        if args.network == 'vgg19':
+            net['img']     = input or InputLayer((None, 3, None, None))
+            net['conv1_1'] = ConvLayer(net['img'],     64, 3, pad=1)
+            net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1)
+            net['pool1']   = PoolLayer(net['conv1_2'], 2, mode='average_exc_pad')
+            net['conv2_1'] = ConvLayer(net['pool1'],   128, 3, pad=1)
+            net['conv2_2'] = ConvLayer(net['conv2_1'], 128, 3, pad=1)
+            net['pool2']   = PoolLayer(net['conv2_2'], 2, mode='average_exc_pad')
+            net['conv3_1'] = ConvLayer(net['pool2'],   256, 3, pad=1)
+            net['conv3_2'] = ConvLayer(net['conv3_1'], 256, 3, pad=1)
+            net['conv3_3'] = ConvLayer(net['conv3_2'], 256, 3, pad=1)
+            net['conv3_4'] = ConvLayer(net['conv3_3'], 256, 3, pad=1)
+            net['pool3']   = PoolLayer(net['conv3_4'], 2, mode='average_exc_pad')
+            net['conv4_1'] = ConvLayer(net['pool3'],   512, 3, pad=1)
+            net['conv4_2'] = ConvLayer(net['conv4_1'], 512, 3, pad=1)
+            net['conv4_3'] = ConvLayer(net['conv4_2'], 512, 3, pad=1)
+            net['conv4_4'] = ConvLayer(net['conv4_3'], 512, 3, pad=1)
+            net['pool4']   = PoolLayer(net['conv4_4'], 2, mode='average_exc_pad')
+            net['conv5_1'] = ConvLayer(net['pool4'],   512, 3, pad=1)
+            net['conv5_2'] = ConvLayer(net['conv5_1'], 512, 3, pad=1)
+            net['conv5_3'] = ConvLayer(net['conv5_2'], 512, 3, pad=1)
+            net['conv5_4'] = ConvLayer(net['conv5_3'], 512, 3, pad=1)
+            net['main']    = net['conv5_4']
+        elif args.network == 'vgg16':
+            net['img']     = input or InputLayer((None, 3, None, None))
+            net['conv1_1'] = ConvLayer(net['img'],     64, 3, pad=1)
+            net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1)
+            net['pool1']   = PoolLayer(net['conv1_2'], 2, mode='average_exc_pad')
+            net['conv2_1'] = ConvLayer(net['pool1'],   128, 3, pad=1)
+            net['conv2_2'] = ConvLayer(net['conv2_1'], 128, 3, pad=1)
+            net['pool2']   = PoolLayer(net['conv2_2'], 2, mode='average_exc_pad')
+            net['conv3_1'] = ConvLayer(net['pool2'],   256, 3, pad=1)
+            net['conv3_2'] = ConvLayer(net['conv3_1'], 256, 3, pad=1)
+            net['conv3_3'] = ConvLayer(net['conv3_2'], 256, 3, pad=1)
+            net['pool3']   = PoolLayer(net['conv3_3'], 2, mode='average_exc_pad')
+            net['conv4_1'] = ConvLayer(net['pool3'],   512, 3, pad=1)
+            net['conv4_2'] = ConvLayer(net['conv4_1'], 512, 3, pad=1)
+            net['conv4_3'] = ConvLayer(net['conv4_2'], 512, 3, pad=1)
+            net['pool4']   = PoolLayer(net['conv4_3'], 2, mode='average_exc_pad')
+            net['conv5_1'] = ConvLayer(net['pool4'],   512, 3, pad=1)
+            net['conv5_2'] = ConvLayer(net['conv5_1'], 512, 3, pad=1)
+            net['conv5_3'] = ConvLayer(net['conv5_2'], 512, 3, pad=1)
+            net['main']    = net['conv5_3']
 
         # Auxiliary network for the semantic layers, and the nearest neighbors calculations.
         net['map'] = InputLayer((1, 1, None, None))
@@ -150,7 +172,7 @@ class Model(object):
             if i == 0:
                 net['map%i'%(j+1)] = PoolLayer(net['map'], 2**j, mode='average_exc_pad')
             self.channels[suffix] = net['conv'+suffix].num_filters
-            
+
             if args.semantic_weight > 0.0:
                 net['sem'+suffix] = ConcatLayer([net['conv'+suffix], net['map%i'%(j+1)]])
             else:
@@ -164,12 +186,19 @@ class Model(object):
     def load_data(self):
         """Open the serialized parameters from a pre-trained network, and load them into the model created.
         """
-        vgg19_file = os.path.join(os.path.dirname(__file__), 'vgg19_conv.pkl.bz2')
-        if not os.path.exists(vgg19_file):
-            error("Model file with pre-trained convolution layers not found. Download here...",
-                  "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2")
+        if args.network == 'vgg19':
+            vgg19_file = os.path.join(os.path.dirname(__file__), 'vgg19_conv.pkl.bz2')
+            if not os.path.exists(vgg19_file):
+                error("Model file with pre-trained convolution layers not found. Download here...",
+                      "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2")
 
-        data = pickle.load(bz2.open(vgg19_file, 'rb'))
+            data = pickle.load(bz2.open(vgg19_file, 'rb'))
+            print(type(data))
+        elif args.network == 'vgg16':
+            vgg16_file = os.path.join(os.path.dirname(__file__), 'vgg16_weights.h5')
+            ### TODO: Complete weights loading
+            # data = pickle.load(bz2.open(vgg16_file, 'rb'))
+
         params = lasagne.layers.get_all_param_values(self.network['main'])
         lasagne.layers.set_all_param_values(self.network['main'], data[:len(params)])
 
@@ -351,7 +380,7 @@ class NeuralGenerator(object):
         extractor = self.compile([self.model.tensor_img, self.model.tensor_map], self.do_extract_patches(layer_outputs))
         result = extractor(self.style_img, self.style_map)
 
-        # Store all the style patches layer by layer, resized to match slice size and cast to 16-bit for size. 
+        # Store all the style patches layer by layer, resized to match slice size and cast to 16-bit for size.
         self.style_data = {}
         for layer, *data in zip(self.style_layers, result[0::3], result[1::3], result[2::3]):
             patches = data[0]
@@ -366,14 +395,14 @@ class NeuralGenerator(object):
         Here we compile a function to run on the GPU that returns all components separately.
         """
 
-        # Feed-forward calculation only, returns the result of the convolution post-activation 
+        # Feed-forward calculation only, returns the result of the convolution post-activation
         self.compute_features = self.compile([self.model.tensor_img, self.model.tensor_map],
                                              self.model.get_outputs('sem', self.style_layers))
 
         # Patch matching calculation that uses only pre-calculated features and a slice of the patches.
-        
+
         self.matcher_tensors = {l: lasagne.utils.shared_empty(dim=4) for l in self.style_layers}
-        self.matcher_history = {l: T.vector() for l in self.style_layers} 
+        self.matcher_history = {l: T.vector() for l in self.style_layers}
         self.matcher_inputs = {self.model.network['dup'+l]: self.matcher_tensors[l] for l in self.style_layers}
         nn_layers = [self.model.network['nn'+l] for l in self.style_layers]
         self.matcher_outputs = dict(zip(self.style_layers, lasagne.layers.get_output(nn_layers, self.matcher_inputs)))
@@ -483,7 +512,7 @@ class NeuralGenerator(object):
 
     def iterate_batches(self, *arrays, batch_size):
         """Break down the data in arrays batch by batch and return them as a generator.
-        """ 
+        """
         total_size = arrays[0].shape[0]
         indices = np.arange(total_size)
         for index in range(0, total_size, batch_size):
