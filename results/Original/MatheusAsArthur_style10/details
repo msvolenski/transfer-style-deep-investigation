@@ -1,0 +1,2 @@
+neural-doodle$ python3 doodle.py --style samples/arthur.jpg --content samples/matheus.jpg                   --output MatheusAsArthur.png --device=gpu0 --phases=4 --iterations=40 --style-weight=10
+
