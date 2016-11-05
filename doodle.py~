@@ -142,27 +142,6 @@ class Model(object):
             net['conv5_3'] = ConvLayer(net['conv5_2'], 512, 3, pad=1)
             net['conv5_4'] = ConvLayer(net['conv5_3'], 512, 3, pad=1)
             net['main']    = net['conv5_4']
-
-	    # Auxiliary network for the semantic layers, and the nearest neighbors calculations.
-	    net['map'] = InputLayer((1, 1, None, None))
-	    for j, i in itertools.product(range(5), range(4)):
-	        if j < 2 and i > 1: continue
-	        suffix = '%i_%i' % (j+1, i+1)
-
-	        if i == 0:
-		    net['map%i'%(j+1)] = PoolLayer(net['map'], 2**j, mode='average_exc_pad')
-	        self.channels[suffix] = net['conv'+suffix].num_filters
-
-	        if args.semantic_weight > 0.0:
-		    net['sem'+suffix] = ConcatLayer([net['conv'+suffix], net['map%i'%(j+1)]])
-	        else:
-		    net['sem'+suffix] = net['conv'+suffix]
-
-	        net['dup'+suffix] = InputLayer(net['sem'+suffix].output_shape)
-	        net['nn'+suffix] = ConvLayer(net['dup'+suffix], 1, 3, b=None, pad=0, flip_filters=False)
-
-	    self.network = net
-
         elif args.network == 'vgg16':
             net['img']     = input or InputLayer((None, 3, None, None))
             net['conv1_1'] = ConvLayer(net['img'],     64, 3, pad=1)
@@ -183,8 +162,6 @@ class Model(object):
             net['conv5_2'] = ConvLayer(net['conv5_1'], 512, 3, pad=1)
             net['conv5_3'] = ConvLayer(net['conv5_2'], 512, 3, pad=1)
             net['main']    = net['conv5_3']
-
-## TODO: Change the auxiliary network for VGG 16
 
         # Auxiliary network for the semantic layers, and the nearest neighbors calculations.
         net['map'] = InputLayer((1, 1, None, None))
