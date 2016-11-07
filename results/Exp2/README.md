@@ -1,5 +1,5 @@
-# First experiment
+# Second experiment
 
 ## About:
-* used our own images and semantic maps
-* varied execution parameters
+* Making one new loss function
+* Changing iterations numbers and phase
