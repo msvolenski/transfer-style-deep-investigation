@@ -11,7 +11,7 @@
 
 #Conventions
 
-## debug 
+## debug
 ### our comments
 #### order of the program
 
@@ -70,7 +70,7 @@ class ansi:
     CYAN = '\033[0;36m'
     CYAN_B = '\033[1;36m'
     ENDC = '\033[0m'
-    
+
 def error(message, *lines):
     string = "\n{}ERROR: " + message + "{}\n" + "\n".join(lines) + "{}\n"
     print(string.format(ansi.RED_B, ansi.RED, ansi.ENDC))
@@ -158,7 +158,7 @@ class Model(object):
             if i == 0:
                 net['map%i'%(j+1)] = PoolLayer(net['map'], 2**j, mode='average_exc_pad')
             self.channels[suffix] = net['conv'+suffix].num_filters
-            
+
             if args.semantic_weight > 0.0: ## Semantic Maps
                 net['sem'+suffix] = ConcatLayer([net['conv'+suffix], net['map%i'%(j+1)]])
             else:
@@ -181,9 +181,9 @@ class Model(object):
         params = lasagne.layers.get_all_param_values(self.network['main'])
         lasagne.layers.set_all_param_values(self.network['main'], data[:len(params)])
 
-    def setup(self, layers): #### 3 Setup inputs and outputs. Inputs are always the same 
+    def setup(self, layers): #### 3 Setup inputs and outputs. Inputs are always the same
         #### Parameter layer set which layers output to compute.
-        
+
         """Setup the inputs and outputs, knowing the layers that are required by the optimization algorithm.
         """
         ## Set symbolic input for the networks (primary and auxiliary)
@@ -244,7 +244,7 @@ class NeuralGenerator(object):
 
         print(ansi.CYAN, end='')
         target = args.content or args.output
-        ### Carrega as fotos e os mapas semânticos 
+        ### Carrega as fotos e os mapas semânticos
         self.content_img_original, self.content_map_original = self.load_images('content', target)
         self.style_img_original, self.style_map_original = self.load_images('style', args.style)
 
@@ -371,9 +371,9 @@ class NeuralGenerator(object):
         result = extractor(self.style_img, self.style_map) ## Extract all patches of the style
         #print ('Result: {}'.format(result)) ## Debug
 
-        # Store all the style patches layer by layer, resized to match slice size and cast to 16-bit for size. 
+        # Store all the style patches layer by layer, resized to match slice size and cast to 16-bit for size.
         self.style_data = {}
-        
+
         ## result[x::y]. Arithmetic progression starting at x and with step equal to y
         for layer, *data in zip(self.style_layers, result[0::3], result[1::3], result[2::3]):
             patches = data[0]
@@ -383,27 +383,27 @@ class NeuralGenerator(object):
                                    + [np.zeros((patches.shape[0],), dtype=np.float16)]
             print('  - Style layer {}: {} patches in {:,}kb.'.format(layer, patches.shape, patches.size//1000))
 
-            
+
     def prepare_optimization(self):
         #### 5 Prepare symbolic expression for optimization
         """Optimization requires a function to compute the error (aka. loss) which is done in multiple components.
         Here we compile a function to run on the GPU that returns all components separately.
         """
 
-        # Feed-forward calculation only, returns the result of the convolution post-activation 
+        # Feed-forward calculation only, returns the result of the convolution post-activation
         ## compile() construct a Theano expression capable of running on GPU
         ## get_outputs() return a list of selected outputs from the self.model.tensor_outputs
         self.compute_features = self.compile([self.model.tensor_img, self.model.tensor_map],
                                              self.model.get_outputs('sem', self.style_layers))
 
         # Patch matching calculation that uses only pre-calculated features and a slice of the patches.
-        
+
         ## lasagne.utils.shared_empty creates a Theano shared variable with specified dimension
-        
+
         self.matcher_tensors = {l: lasagne.utils.shared_empty(dim=4) for l in self.style_layers}
-        self.matcher_history = {l: T.vector() for l in self.style_layers} 
+        self.matcher_history = {l: T.vector() for l in self.style_layers}
         ## Starts with empty tensors
-        self.matcher_inputs = {self.model.network['dup'+l]: self.matcher_tensors[l] for l in self.style_layers} 
+        self.matcher_inputs = {self.model.network['dup'+l]: self.matcher_tensors[l] for l in self.style_layers}
         nn_layers = [self.model.network['nn'+l] for l in self.style_layers]
         ## Output of the nearest neighboors
         self.matcher_outputs = dict(zip(self.style_layers, lasagne.layers.get_output(nn_layers, self.matcher_inputs)))
@@ -416,7 +416,7 @@ class NeuralGenerator(object):
         self.losses = self.content_loss() + self.total_variation_loss() + self.style_loss()
         # Let Theano automatically compute the gradient of the error, used by LBFGS to update image pixels.
         ## l has the form ('type_of_loss', layer_number, loss). Hence the use of l[-1]
-        grad = T.grad(sum([l[-1] for l in self.losses]), self.model.tensor_img) 
+        grad = T.grad(sum([l[-1] for l in self.losses]), self.model.tensor_img)
         # Create a single function that returns the gradient and the individual errors components.
         ## Why tensor matches?
         self.compute_grad_and_losses = theano.function(
@@ -443,8 +443,8 @@ class NeuralGenerator(object):
             results.extend([patches] + self.compute_norms(T, l, patches))
         return results
 
-    def do_match_patches(self, layer): 
-        
+    def do_match_patches(self, layer):
+
         #### 6 compute score of each patch
         # Use node in the model to compute the result of the normalized cross-correlation, using results from the
         # nearest-neighbor layers called 'nn3_1' and 'nn4_1'.
@@ -479,11 +479,11 @@ class NeuralGenerator(object):
 
         # Build a list of loss components that compute the mean squared error by comparing current result to desired.
         for l, ref in zip(self.content_layers, result):
-            layer = self.model.tensor_outputs['conv'+l]          
-            loss = T.mean((layer - ref) ** 2.0)          
+            layer = self.model.tensor_outputs['conv'+l]
+            loss = T.mean((layer - ref) ** 2.0)
             content_loss.append(('content', l, args.content_weight * loss))
             print('  - Content layer conv{}: {} features in {:,}kb.'.format(l, ref.shape[1], ref.size//1000))
-            
+
         return content_loss
 
     def style_loss(self):
@@ -519,7 +519,7 @@ class NeuralGenerator(object):
 
     def iterate_batches(self, *arrays, batch_size):
         """Break down the data in arrays batch by batch and return them as a generator.
-        """ 
+        """
         total_size = arrays[0].shape[0]
         indices = np.arange(total_size)
         for index in range(0, total_size, batch_size):
@@ -617,33 +617,33 @@ class NeuralGenerator(object):
     def run(self):
         """The main entry point for the application, runs through multiple phases at increasing resolutions.
         """
-        self.frame, Xn = 0, None 
+        self.frame, Xn = 0, None
         for i in range(args.phases): #### 2 Run through multiple phases at incresing resolutions
-            
+
             for _ in range(2):
-                
-                
+
+
                 ##------------------------------------------------------------------------------------------------------------------
                 ## Commute content and style
                 ##------------------------------------------------------------------------------------------------------------------
-                
-                
-                l = self.style_layer
-                self.style_layer = self.content_layer
-                self.content_layer = l
-                
-                l = self.style_image_original
-                self.style_image_original = self.content_image_original
-                self.content_image_original = l
-                
+
+
+                l = self.style_layers
+                self.style_layers = self.content_layers
+                self.content_layers = l
+
+                l = self.style_img_original
+                self.style_img_original = self.content_img_original
+                self.content_img_original = l
+
                 l = self.style_map_original
                 self.style_map_original = self.content_map_original
-                self.content_map_original = l  
-                
+                self.content_map_original = l
+
                 ##------------------------------------------------------------------------------------------------------------------
                 ## Commute content and style
                 ##------------------------------------------------------------------------------------------------------------------
-                
+
                 self.error = 255.0
                 scale = 1.0 / 2.0 ** (args.phases - 1 - i) ## Min resolution is 64 pixels. This is accordance with Li and Wand
 
@@ -655,7 +655,7 @@ class NeuralGenerator(object):
 
                 ## 3 Get the output of these layers. They are stored at self.model.tensor_outputs.
                 ## WARNING: This statement seems useless since model.setup is called agait three lines later
-                self.model.setup(layers=['sem'+l for l in self.style_layers] + ['conv'+l for l in self.content_layers]) 
+                self.model.setup(layers=['sem'+l for l in self.style_layers] + ['conv'+l for l in self.content_layers])
                 ## 4 Scale and put in the image in the form (b, c, y, x)
                 self.prepare_content(scale)
                 self.prepare_style(scale)
@@ -673,7 +673,7 @@ class NeuralGenerator(object):
                     Xn = self.content_img[0] + self.model.pixel_mean
                 if args.seed == 'noise':
                     bounds = [int(i) for i in args.seed_range.split(':')]
-                    Xn = np.random.uniform(bounds[0], bounds[1], shape + (3,)).astype(np.float32) 
+                    Xn = np.random.uniform(bounds[0], bounds[1], shape + (3,)).astype(np.float32)
                 if args.seed == 'previous':
                     ## Use the interpolation recommended by Li and Wand for upsampling
                     Xn = scipy.misc.imresize(Xn[0], shape, interp='bicubic')
@@ -722,5 +722,5 @@ class NeuralGenerator(object):
 
 
 if __name__ == "__main__":
-    generator = NeuralGenerator() 
+    generator = NeuralGenerator()
     generator.run() #### 1 Run the algorithm
