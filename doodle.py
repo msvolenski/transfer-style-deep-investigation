@@ -81,6 +81,7 @@ os.environ.setdefault('THEANO_FLAGS', 'floatX=float32,device={},force_device=Tru
 import numpy as np
 import scipy.optimize, scipy.ndimage, scipy.misc
 import PIL
+import h5py
 
 # Numeric Computing (GPU)
 import theano
@@ -142,27 +143,6 @@ class Model(object):
             net['conv5_3'] = ConvLayer(net['conv5_2'], 512, 3, pad=1)
             net['conv5_4'] = ConvLayer(net['conv5_3'], 512, 3, pad=1)
             net['main']    = net['conv5_4']
-
-	    # Auxiliary network for the semantic layers, and the nearest neighbors calculations.
-	    net['map'] = InputLayer((1, 1, None, None))
-	    for j, i in itertools.product(range(5), range(4)):
-	        if j < 2 and i > 1: continue
-	        suffix = '%i_%i' % (j+1, i+1)
-
-	        if i == 0:
-		    net['map%i'%(j+1)] = PoolLayer(net['map'], 2**j, mode='average_exc_pad')
-	        self.channels[suffix] = net['conv'+suffix].num_filters
-
-	        if args.semantic_weight > 0.0:
-		    net['sem'+suffix] = ConcatLayer([net['conv'+suffix], net['map%i'%(j+1)]])
-	        else:
-		    net['sem'+suffix] = net['conv'+suffix]
-
-	        net['dup'+suffix] = InputLayer(net['sem'+suffix].output_shape)
-	        net['nn'+suffix] = ConvLayer(net['dup'+suffix], 1, 3, b=None, pad=0, flip_filters=False)
-
-	    self.network = net
-
         elif args.network == 'vgg16':
             net['img']     = input or InputLayer((None, 3, None, None))
             net['conv1_1'] = ConvLayer(net['img'],     64, 3, pad=1)
@@ -184,12 +164,15 @@ class Model(object):
             net['conv5_3'] = ConvLayer(net['conv5_2'], 512, 3, pad=1)
             net['main']    = net['conv5_3']
 
-## TODO: Change the auxiliary network for VGG 16
-
         # Auxiliary network for the semantic layers, and the nearest neighbors calculations.
         net['map'] = InputLayer((1, 1, None, None))
+
         for j, i in itertools.product(range(5), range(4)):
             if j < 2 and i > 1: continue
+
+            ### Skip inexistent layers in case it's vgg16
+            if args.network == 'vgg16' and j > 1 and i > 2: continue
+
             suffix = '%i_%i' % (j+1, i+1)
 
             if i == 0:
@@ -216,15 +199,18 @@ class Model(object):
                       "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2")
 
             data = pickle.load(bz2.open(vgg19_file, 'rb'))
-            print(type(data))
+
         elif args.network == 'vgg16':
-            vgg16_file = os.path.join(os.path.dirname(__file__), 'vgg16_weights.h5')
+            vgg16_file = os.path.join(os.path.dirname(__file__), 'vgg-face-keras.h5')
             if not os.path.exists(vgg16_file):
                 error("Model file with pre-trained convolution layers not found. Download here...",
-                      "https://drive.google.com/file/d/0Bz7KyqmuGsilT0J5dmRCM0ROVHc/view?usp=sharing")
-            data = h5py.File(vgg16_file, 'rb')
-            ### TODO: Complete weights loading
-            # data = pickle.load(bz2.open(vgg16_file, 'rb'))
+                      "https://docs.google.com/uc?export=download&confirm=lh4v&id=0B4ChsjFJvew3NkF0dTc1OGxsOFU")
+
+            file = h5py.File(vgg16_file, 'r')
+            data = []
+            for k in list(file.keys()):
+                if np.array(file[k]).size != 0:
+                    data += [np.array(file[k][i]) for i in list(file[k])]
 
         params = lasagne.layers.get_all_param_values(self.network['main'])
         lasagne.layers.set_all_param_values(self.network['main'], data[:len(params)])
