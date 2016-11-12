@@ -200,19 +200,34 @@ class Model(object):
 
             data = pickle.load(bz2.open(vgg19_file, 'rb'))
 
+        ### Load vgg16 faces instead
         elif args.network == 'vgg16':
             vgg16_file = os.path.join(os.path.dirname(__file__), 'vgg-face-keras.h5')
             if not os.path.exists(vgg16_file):
                 error("Model file with pre-trained convolution layers not found. Download here...",
                       "https://docs.google.com/uc?export=download&confirm=lh4v&id=0B4ChsjFJvew3NkF0dTc1OGxsOFU")
 
+            vgg19_file = os.path.join(os.path.dirname(__file__), 'vgg19_conv.pkl.bz2')
+            data19 = pickle.load(bz2.open(vgg19_file, 'rb'))
+
+            ### Open file
             file = h5py.File(vgg16_file, 'r')
             data = []
+            ### Save weights of the convolution layers
+            j = 1
             for k in list(file.keys()):
+                ### If the layer has weights, copy them
                 if np.array(file[k]).size != 0:
                     data += [np.array(file[k][i]) for i in list(file[k])]
+                    ### Replace bias weights with the vgg19 bias weights
+                    data[-1] = data19[j]
+                    j += 2
+                    if k in ['conv3_3', 'conv4_3']: j += 2
+                if k == 'conv5_3': break
 
+        ### Check number of layers to load
         params = lasagne.layers.get_all_param_values(self.network['main'])
+        ### Load layers until get to the number of layers
         lasagne.layers.set_all_param_values(self.network['main'], data[:len(params)])
 
     def setup(self, layers):
