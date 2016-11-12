@@ -120,49 +120,49 @@ class Model(object):
         net, self.channels = {}, {}
 
         # Primary network for the main image. These are convolution only, and stop at layer 4_2 (rest unused).
-        if args.network == 'vgg19':
-            net['img']     = input or InputLayer((None, 3, None, None))
-            net['conv1_1'] = ConvLayer(net['img'],     64, 3, pad=1)
-            net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1)
-            net['pool1']   = PoolLayer(net['conv1_2'], 2, mode='average_exc_pad')
-            net['conv2_1'] = ConvLayer(net['pool1'],   128, 3, pad=1)
-            net['conv2_2'] = ConvLayer(net['conv2_1'], 128, 3, pad=1)
-            net['pool2']   = PoolLayer(net['conv2_2'], 2, mode='average_exc_pad')
-            net['conv3_1'] = ConvLayer(net['pool2'],   256, 3, pad=1)
-            net['conv3_2'] = ConvLayer(net['conv3_1'], 256, 3, pad=1)
-            net['conv3_3'] = ConvLayer(net['conv3_2'], 256, 3, pad=1)
-            net['conv3_4'] = ConvLayer(net['conv3_3'], 256, 3, pad=1)
-            net['pool3']   = PoolLayer(net['conv3_4'], 2, mode='average_exc_pad')
-            net['conv4_1'] = ConvLayer(net['pool3'],   512, 3, pad=1)
-            net['conv4_2'] = ConvLayer(net['conv4_1'], 512, 3, pad=1)
-            net['conv4_3'] = ConvLayer(net['conv4_2'], 512, 3, pad=1)
-            net['conv4_4'] = ConvLayer(net['conv4_3'], 512, 3, pad=1)
-            net['pool4']   = PoolLayer(net['conv4_4'], 2, mode='average_exc_pad')
-            net['conv5_1'] = ConvLayer(net['pool4'],   512, 3, pad=1)
-            net['conv5_2'] = ConvLayer(net['conv5_1'], 512, 3, pad=1)
-            net['conv5_3'] = ConvLayer(net['conv5_2'], 512, 3, pad=1)
-            net['conv5_4'] = ConvLayer(net['conv5_3'], 512, 3, pad=1)
-            net['main']    = net['conv5_4']
-        elif args.network == 'vgg16':
-            net['img']     = input or InputLayer((None, 3, None, None))
-            net['conv1_1'] = ConvLayer(net['img'],     64, 3, pad=1)
-            net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1)
-            net['pool1']   = PoolLayer(net['conv1_2'], 2, mode='average_exc_pad')
-            net['conv2_1'] = ConvLayer(net['pool1'],   128, 3, pad=1)
-            net['conv2_2'] = ConvLayer(net['conv2_1'], 128, 3, pad=1)
-            net['pool2']   = PoolLayer(net['conv2_2'], 2, mode='average_exc_pad')
-            net['conv3_1'] = ConvLayer(net['pool2'],   256, 3, pad=1)
-            net['conv3_2'] = ConvLayer(net['conv3_1'], 256, 3, pad=1)
-            net['conv3_3'] = ConvLayer(net['conv3_2'], 256, 3, pad=1)
-            net['pool3']   = PoolLayer(net['conv3_3'], 2, mode='average_exc_pad')
-            net['conv4_1'] = ConvLayer(net['pool3'],   512, 3, pad=1)
-            net['conv4_2'] = ConvLayer(net['conv4_1'], 512, 3, pad=1)
-            net['conv4_3'] = ConvLayer(net['conv4_2'], 512, 3, pad=1)
-            net['pool4']   = PoolLayer(net['conv4_3'], 2, mode='average_exc_pad')
-            net['conv5_1'] = ConvLayer(net['pool4'],   512, 3, pad=1)
-            net['conv5_2'] = ConvLayer(net['conv5_1'], 512, 3, pad=1)
-            net['conv5_3'] = ConvLayer(net['conv5_2'], 512, 3, pad=1)
-            net['main']    = net['conv5_3']
+        # if args.network == 'vgg19':
+        #     net['img']     = input or InputLayer((None, 3, None, None))
+        #     net['conv1_1'] = ConvLayer(net['img'],     64, 3, pad=1)
+        #     net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1)
+        #     net['pool1']   = PoolLayer(net['conv1_2'], 2, mode='average_exc_pad')
+        #     net['conv2_1'] = ConvLayer(net['pool1'],   128, 3, pad=1)
+        #     net['conv2_2'] = ConvLayer(net['conv2_1'], 128, 3, pad=1)
+        #     net['pool2']   = PoolLayer(net['conv2_2'], 2, mode='average_exc_pad')
+        #     net['conv3_1'] = ConvLayer(net['pool2'],   256, 3, pad=1)
+        #     net['conv3_2'] = ConvLayer(net['conv3_1'], 256, 3, pad=1)
+        #     net['conv3_3'] = ConvLayer(net['conv3_2'], 256, 3, pad=1)
+        #     net['conv3_4'] = ConvLayer(net['conv3_3'], 256, 3, pad=1)
+        #     net['pool3']   = PoolLayer(net['conv3_4'], 2, mode='average_exc_pad')
+        #     net['conv4_1'] = ConvLayer(net['pool3'],   512, 3, pad=1)
+        #     net['conv4_2'] = ConvLayer(net['conv4_1'], 512, 3, pad=1)
+        #     net['conv4_3'] = ConvLayer(net['conv4_2'], 512, 3, pad=1)
+        #     net['conv4_4'] = ConvLayer(net['conv4_3'], 512, 3, pad=1)
+        #     net['pool4']   = PoolLayer(net['conv4_4'], 2, mode='average_exc_pad')
+        #     net['conv5_1'] = ConvLayer(net['pool4'],   512, 3, pad=1)
+        #     net['conv5_2'] = ConvLayer(net['conv5_1'], 512, 3, pad=1)
+        #     net['conv5_3'] = ConvLayer(net['conv5_2'], 512, 3, pad=1)
+        #     net['conv5_4'] = ConvLayer(net['conv5_3'], 512, 3, pad=1)
+        #     net['main']    = net['conv5_4']
+        # elif args.network == 'vgg16':
+        net['img']     = input or InputLayer((None, 3, None, None))
+        net['conv1_1'] = ConvLayer(net['img'],     64, 3, pad=1)
+        net['conv1_2'] = ConvLayer(net['conv1_1'], 64, 3, pad=1)
+        net['pool1']   = PoolLayer(net['conv1_2'], 2, mode='average_exc_pad')
+        net['conv2_1'] = ConvLayer(net['pool1'],   128, 3, pad=1)
+        net['conv2_2'] = ConvLayer(net['conv2_1'], 128, 3, pad=1)
+        net['pool2']   = PoolLayer(net['conv2_2'], 2, mode='average_exc_pad')
+        net['conv3_1'] = ConvLayer(net['pool2'],   256, 3, pad=1)
+        net['conv3_2'] = ConvLayer(net['conv3_1'], 256, 3, pad=1)
+        net['conv3_3'] = ConvLayer(net['conv3_2'], 256, 3, pad=1)
+        net['pool3']   = PoolLayer(net['conv3_3'], 2, mode='average_exc_pad')
+        net['conv4_1'] = ConvLayer(net['pool3'],   512, 3, pad=1)
+        net['conv4_2'] = ConvLayer(net['conv4_1'], 512, 3, pad=1)
+        net['conv4_3'] = ConvLayer(net['conv4_2'], 512, 3, pad=1)
+        net['pool4']   = PoolLayer(net['conv4_3'], 2, mode='average_exc_pad')
+        net['conv5_1'] = ConvLayer(net['pool4'],   512, 3, pad=1)
+        net['conv5_2'] = ConvLayer(net['conv5_1'], 512, 3, pad=1)
+        net['conv5_3'] = ConvLayer(net['conv5_2'], 512, 3, pad=1)
+        net['main']    = net['conv5_3']
 
         # Auxiliary network for the semantic layers, and the nearest neighbors calculations.
         net['map'] = InputLayer((1, 1, None, None))
@@ -171,7 +171,8 @@ class Model(object):
             if j < 2 and i > 1: continue
 
             ### Skip inexistent layers in case it's vgg16
-            if args.network == 'vgg16' and j > 1 and i > 2: continue
+            # if args.network == 'vgg16' and j > 1 and i > 2: continue
+            if j > 1 and i > 2: continue
 
             suffix = '%i_%i' % (j+1, i+1)
 
@@ -188,6 +189,8 @@ class Model(object):
             net['nn'+suffix] = ConvLayer(net['dup'+suffix], 1, 3, b=None, pad=0, flip_filters=False)
 
         self.network = net
+
+        print(net.keys())
 
     def load_data(self):
         """Open the serialized parameters from a pre-trained network, and load them into the model created.
