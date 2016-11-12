@@ -190,7 +190,7 @@ class Model(object):
 
         self.network = net
 
-        print(net.keys())
+        # print(net.keys())
 
     def load_data(self):
         """Open the serialized parameters from a pre-trained network, and load them into the model created.
@@ -202,6 +202,13 @@ class Model(object):
                       "https://github.com/alexjc/neural-doodle/releases/download/v0.0/vgg19_conv.pkl.bz2")
 
             data = pickle.load(bz2.open(vgg19_file, 'rb'))
+
+            data2 = []
+            for (i, m) in enumerate(data):
+                # print(i)
+                if i not in [14, 15, 22, 23, 30, 31]:
+                    data2.append(m)
+            data = data2
 
         ### Load vgg16 faces instead
         elif args.network == 'vgg16':
@@ -230,6 +237,7 @@ class Model(object):
 
         ### Check number of layers to load
         params = lasagne.layers.get_all_param_values(self.network['main'])
+        print(len(params))
         ### Load layers until get to the number of layers
         lasagne.layers.set_all_param_values(self.network['main'], data[:len(params)])
 
