@@ -31,7 +31,7 @@ while True:
   ### It appears to be working properly
   ### To check if the lines are producing the correct outputs add 'echo' as the
   ### first term of the list to print it in the command line
-  subprocess.run(['python', 'doodle.py', '--device=cpu', '--save-every=0',
+  subprocess.run(['python', 'doodle.py', '--device=gpu0', '--save-every=0',
                   '--content={}'.format(content),
                   '--style={}'.format(style),
                   '--output={}'.format(output),
